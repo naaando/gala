@@ -59,7 +59,6 @@ namespace Gala
 
 			Prefs.add_listener (prefs_listener);
 
-			screen.workspace_switched.connect_after (workspace_switched);
 			screen.workspace_added.connect (workspace_added);
 			screen.workspace_removed.connect_after (workspace_removed);
 			screen.window_entered_monitor.connect (window_entered_monitor);
@@ -81,7 +80,6 @@ namespace Gala
 			Prefs.remove_listener (prefs_listener);
 
 			screen.workspace_added.disconnect (workspace_added);
-			screen.workspace_switched.disconnect (workspace_switched);
 			screen.workspace_removed.disconnect (workspace_removed);
 			screen.window_entered_monitor.disconnect (window_entered_monitor);
 			screen.window_left_monitor.disconnect (window_left_monitor);
@@ -105,19 +103,6 @@ namespace Gala
 			while (it.next ()) {
 				if (existing_workspaces.index (it.@get ()) < 0)
 					it.remove ();
-			}
-		}
-
-		void workspace_switched (Screen screen, int from, int to, MotionDirection direction)
-		{
-			if (!Prefs.get_dynamic_workspaces ())
-				return;
-
-			// remove empty workspaces after we switched away from them unless it's the last one
-			var prev_workspace = screen.get_workspace_by_index (from);
-			if (Utils.get_n_windows (prev_workspace) < 1
-				&& from != screen.get_n_workspaces () - 1) {
-				remove_workspace (prev_workspace);
 			}
 		}
 
@@ -266,6 +251,7 @@ namespace Gala
 
 			foreach (var workspace in screen.get_workspaces ()) {
 				if (Utils.get_n_windows (workspace) < 1
+					&& workspace.index () != screen.get_active_workspace_index ()
 					&& workspace.index () != last_index) {
 					remove_workspace (workspace);
 				}
