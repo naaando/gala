@@ -329,7 +329,7 @@ namespace Gala
 		void activate_workspace (WorkspaceClone clone, bool close_view)
 		{
 			close_view = close_view && screen.get_active_workspace () == clone.workspace;
-			
+
 			clone.workspace.activate (screen.get_display ().get_current_time ());
 
 			if (close_view)
