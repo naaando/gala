@@ -333,7 +333,7 @@ namespace Gala
 			clone.workspace.activate (screen.get_display ().get_current_time ());
 
 			if (close_view)
-				toggle ();
+				close ();	
 		}
 
 		/**
@@ -407,7 +407,7 @@ namespace Gala
 				workspace.activate (time);
 			else {
 				window.activate (time);
-				toggle ();
+				close ();
 			}
 		}
 
@@ -439,7 +439,8 @@ namespace Gala
 			if (!opened)
 				return;
 
-			WorkspaceManager.get_default ().thaw_remove ();
+			unowned WorkspaceManager workspace_manager = WorkspaceManager.get_default ();
+			workspace_manager.thaw_remove ();
 			toggle ();
 		}
 
@@ -575,6 +576,7 @@ namespace Gala
 
 					animating = false;
 
+					WorkspaceManager.get_default ().cleanup ();
 					return false;
 				});
 			} else {

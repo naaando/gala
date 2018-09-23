@@ -264,9 +264,12 @@ namespace Gala
 			var screen = wm.get_screen ();
 			var last_index = screen.get_n_workspaces () - 1;
 
+			unowned Workspace active = screen.get_active_workspace ();
+
 			foreach (var workspace in screen.get_workspaces ()) {
 				if (Utils.get_n_windows (workspace) < 1
-					&& workspace.index () != last_index) {
+					&& workspace.index () != last_index
+					&& workspace != active) {
 					remove_workspace (workspace);
 				}
 			}
