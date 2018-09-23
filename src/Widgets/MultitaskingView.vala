@@ -333,7 +333,7 @@ namespace Gala
 			clone.workspace.activate (screen.get_display ().get_current_time ());
 
 			if (close_view)
-				close ();	
+				close ();
 		}
 
 		/**
@@ -439,8 +439,7 @@ namespace Gala
 			if (!opened)
 				return;
 
-			unowned WorkspaceManager workspace_manager = WorkspaceManager.get_default ();
-			workspace_manager.thaw_remove ();
+			WorkspaceManager.get_default ().thaw_remove ();
 			toggle ();
 		}
 
