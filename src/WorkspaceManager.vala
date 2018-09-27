@@ -87,6 +87,31 @@ namespace Gala
 			screen.window_left_monitor.disconnect (window_left_monitor);
 		}
 
+
+		public void move_workspace (int index, Meta.Workspace workspace)
+		{
+			var windows = workspace.list_windows ();
+			var screen = workspace.get_screen ();
+			
+			Compositor.get_window_actors (workspace.get_screen ()).foreach ((actor) => {
+				if (actor.is_destroyed ()) {
+					return;
+				}
+				
+				unowned Meta.Window window = actor.get_meta_window ();
+				
+				var current_index = window.get_workspace ().index ();
+				if (current_index >= index
+				&& !window.on_all_workspaces) {
+					window.change_workspace_by_index (current_index + 1, true);
+				}
+			});
+
+			windows.foreach ((window) => {
+				window.change_workspace_by_index (index, true);
+			});
+		}
+
 		void workspace_added (Screen screen, int index)
 		{
 			var workspace = screen.get_workspace_by_index (index);

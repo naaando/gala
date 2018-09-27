@@ -81,11 +81,13 @@ namespace Gala
 			}
 		}
 
-		public Workspace workspace { get; construct; }
+		public Workspace workspace { get; set; }
 
 		Actor close_button;
 		Actor icon_container;
 		Cogl.Material dummy_material;
+		Actor? prev_parent = null;
+		int prev_index = -1;
 
 		uint show_close_button_timeout = 0;
 
@@ -110,15 +112,14 @@ namespace Gala
 
 			dummy_material = new Cogl.Material ();
 
-			var click = new ClickAction ();
-			click.clicked.connect (() => selected ());
-			// when the actor is pressed, the ClickAction grabs all events, so we won't be
-			// notified when the cursor leaves the actor, which makes our close button stay
-			// forever. To fix this we hide the button for as long as the actor is pressed.
-			click.notify["pressed"].connect (() => {
-				toggle_close_button (!click.pressed && get_has_pointer ());
-			});
-			add_action (click);
+			var drag_action = new DragDropAction (DragDropAction.SOURCE, "multitaskingview-icongroupcontainer");
+			drag_action.drag_begin.connect (drag_begin);
+			drag_action.drag_end.connect (drag_end);
+			drag_action.drag_canceled.connect (drag_canceled);
+			drag_action.actor_clicked.connect (() => selected ());
+			drag_action.destination_crossed.connect (destination_crossed);
+
+			add_action (drag_action);
 
 			icon_container = new Actor ();
 			icon_container.width = width;
@@ -488,6 +489,98 @@ namespace Gala
 			}
 
 			return false;
+		}
+
+   		Clutter.Actor drag_begin (float click_x, float click_y) {
+			toggle_close_button (false);
+			backdrop_opacity = 0;
+
+			prev_parent = get_parent ();
+			prev_index = prev_parent.get_children ().index (this);
+			
+			var stage = this.get_stage ();
+			get_parent ().remove_child (this);
+			stage.add_child (this);
+			
+			set_position (click_x - width/2, click_y - height/2);
+			
+			return this;
+		}
+
+		void destination_crossed (Actor destination, bool hovered)
+		{
+			if (destination is WorkspaceInsertThumb) {
+				var insert_thumb = destination as WorkspaceInsertThumb;
+				//  get_parent ().remove_child (this);
+				insert_thumb.set_workspace_thumb (this);
+
+				var opacity = hovered ? 0 : 255;
+				var duration = hovered && insert_thumb != null ? WorkspaceInsertThumb.EXPAND_DELAY : 100;
+				var scale = hovered ? 0.75 : 1.0;
+
+				save_easing_state ();
+
+				set_easing_mode (AnimationMode.LINEAR);
+				set_easing_duration (duration);
+				set_scale (scale, scale);
+				//  set_opacity (opacity);
+
+				restore_easing_state ();
+			}
+		}
+
+		/**
+		 * Depending on the destination we have different ways to find the correct destination.
+		 * After we found one we destroy ourselves so the dragged clone immediately disappears,
+		 * otherwise we cancel the drag and animate back to our old place.
+		 */
+		void drag_end (Actor destination)
+		{
+			Meta.Workspace workspace = null;
+			//  var primary = window.get_screen ().get_primary_monitor ();
+
+			if (destination is WorkspaceInsertThumb) {
+				//  if (!Prefs.get_dynamic_workspaces ()) {
+				//  	drag_canceled ();
+				//  	return;
+				//  }
+
+				var inserter = (WorkspaceInsertThumb) destination;
+				//  if (workspace.index () != inserter.workspace_index) {
+				//  	drag_canceled ();
+				//  	return;
+				//  }
+
+				WorkspaceManager.get_default ().move_workspace (inserter.workspace_index, this.workspace);
+
+				//  if (Prefs.get_workspaces_only_on_primary () && window.get_monitor () != primary) {
+				//  	window.move_to_monitor (primary);
+				//  	will_move = true;
+				//  }
+				
+				//  InternalUtils.insert_workspace_with_window (inserter.workspace_index, window);
+
+				// if we don't actually change workspaces, the window-added/removed signals won't
+				// be emitted so we can just keep our window here
+			}
+			//  backdrop_opacity = active ? 40 : 0;
+			//  WorkspaceManager.get_default ().move_workspace (0, this.workspace);
+			//  InternalUtils.insert_workspace_with_window (inserter.workspace_index, window);
+			get_parent ().remove_child (this);
+			this.workspace = workspace;
+		}
+
+		/**
+		 * Animate back to our previous position with a bouncing animation.
+		 */
+		void drag_canceled ()
+		{
+			print ("drag cancelled");
+			set_scale (1, 1);
+			backdrop_opacity = active ? 40 : 0;
+
+			get_parent ().remove_child (this);
+			prev_parent.insert_child_at_index (this, prev_index);
 		}
 	}
 }

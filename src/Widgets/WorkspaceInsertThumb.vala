@@ -42,8 +42,8 @@ namespace Gala
 			reactive = true;
 			x_align = Clutter.ActorAlign.CENTER;
 
-			var drop = new DragDropAction (DragDropActionType.DESTINATION, "multitaskingview-window");
-			drop.crossed.connect ((hovered) => {
+			var drop_window = new DragDropAction (DragDropActionType.DESTINATION, "multitaskingview-window");
+			drop_window.crossed.connect ((hovered) => {
 				if (!Prefs.get_dynamic_workspaces ())
 					return;
 
@@ -57,8 +57,27 @@ namespace Gala
 				} else
 					expand_timeout = Timeout.add (EXPAND_DELAY, expand);
 			});
+			
+			var drop_icon_group = new DragDropAction (DragDropAction.DESTINATION, "multitaskingview-icongroupcontainer");
+			drop_icon_group.crossed.connect ((hovered) => {
+				if (!Prefs.get_dynamic_workspaces ()) {
+					return;
+				}
+				
+				if (!hovered) {
+					if (expand_timeout != 0) {
+						Source.remove (expand_timeout);
+						expand_timeout = 0;
+					}
+					
+					transform (false);
+				} else {
+					expand_timeout = Timeout.add (EXPAND_DELAY, expand);
+				}
+			});
 
-			add_action (drop);
+			add_action (drop_window);
+			add_action (drop_icon_group);
 		}
 
 		public void set_window_thumb (Window window)
@@ -70,6 +89,13 @@ namespace Gala
 			icon.x = IconGroupContainer.SPACING;
 			icon.x_align = ActorAlign.CENTER;
 			add_child (icon);
+		}
+
+		public void set_workspace_thumb (IconGroup icon_container) {
+			destroy_all_children ();
+
+			var icon = new IconGroup (icon_container.workspace);
+			add_child (icon_container);
 		}
 
 		bool expand ()
